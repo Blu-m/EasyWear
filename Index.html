@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>مساعد التنسيق الشخصي - EasyWear Smart Mirror</title>
+
+  <!-- Google Fonts: Cairo & Tajawal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom CSS utilities with WebKit / Safari prefixes -->
+  <style>
+    html, body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #14141E;
+      color: #ffffff;
+    }
+
+    /* WebKit touch scrolling fix for iPad/iPhone */
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .mirror-glass {
+      background: rgba(30, 30, 44, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .mirror-glass-light {
+      background: rgba(250, 248, 245, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .mirror-glass-card {
+      background: rgba(30, 30, 44, 0.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mirror-glass-card-active {
+      background: rgba(45, 42, 60, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(232, 162, 168, 0.55);
+      box-shadow: 0 0 20px -3px rgba(232, 162, 168, 0.25);
+    }
+
+    .dusty-pink-glow {
+      box-shadow: 0 8px 30px -4px rgba(216, 131, 139, 0.35);
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(232, 162, 168, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(232, 162, 168, 0.6);
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+
+  <!-- React 18, ReactDOM 18 & Babel Standalone with crossorigin tags for Safari -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+</head>
+<body class="bg-[#14141E] text-white selection:bg-[#E8A2A8]/30">
+  <div id="root"></div>
+
+  <!-- Application Script -->
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // =========================================================================
+    // 🎨 Lucide Icons Replacement Components (SVG)
+    // =========================================================================
+    const createSvgIcon = (svgContent) => {
+      return ({ className = "w-5 h-5", ...props }) => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+          {...props}
+        >
+          {svgContent}
+        </svg>
+      );
+    };
+
+    const Moon = createSvgIcon(<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />);
+    const Sparkles = createSvgIcon(<><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></>);
+    const Info = createSvgIcon(<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>);
+    const RefreshCw = createSvgIcon(<><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></>);
+    const Shirt = createSvgIcon(<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>);
+    const Sliders = createSvgIcon(<><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></>);
+    const X = createSvgIcon(<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>);
+    const Target = createSvgIcon(<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>);
+    const Compass = createSvgIcon(<><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>);
+    const Award = createSvgIcon(<><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></>);
+    const TrendingUp = createSvgIcon(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>);
+    const Layers = createSvgIcon(<><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L3 12.5"/><path d="m22 17.5-8.58 3.91a2 2 0 0 1-1.66 0L3 17.5"/></>);
+    const CheckCircle2 = createSvgIcon(<><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></>);
+    const CheckCircle = createSvgIcon(<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>);
+    const Calendar = createSvgIcon(<><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></>);
+    const ArrowRight = createSvgIcon(<><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>);
+    const BellRing = createSvgIcon(<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></>);
+    const Share2 = createSvgIcon(<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="10.68" y2="6.82"/><line x1="15.41" x2="8.59" y1="17.18" y2="13.32"/></>);
+    const Clock = createSvgIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>);
+    const RotateCw = createSvgIcon(<><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></>);
+    const Check = createSvgIcon(<polyline points="20 6 9 17 4 12" />);
+    const ChevronLeft = createSvgIcon(<path d="m15 18-6-6 6-6" />);
+    const ChevronRight = createSvgIcon(<path d="m9 18 6-6-6-6" />);
+    const Sun = createSvgIcon(<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></>);
+    const Wind = createSvgIcon(<><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></>);
+    const CloudRain = createSvgIcon(<><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></>);
+    const CloudSun = createSvgIcon(<><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></>);
+    const AlertCircle = createSvgIcon(<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>);
+
+    // =========================================================================
+    // 📦 Wardrobe Data & Google Drive Helper Integration
+    // =========================================================================
+
+    const WARDROBE_BG_DRIVE_ID = '1vLDaUSb1XQ-Hi9C3Wq6riWxYVNkzBafl'; 
+    const WARDROBE_BG_IMAGE = WARDROBE_BG_DRIVE_ID
+      ? `https://lh3.googleusercontent.com/d/${WARDROBE_BG_DRIVE_ID}`
+      : 'https://images.unsplash.com/photo-1558882224-dda166733046?auto=format&fit=crop&q=80&w=1920';
+
+    const INITIAL_WEATHER_PRESETS = [
+      {
+        temperature: 28,
+        condition: 'Sunny',
+        conditionArabic: '28°C - مشمس',
+        humidity: 34,
+        feelsLike: 29,
+        windSpeed: 12,
+        icon: 'sunny',
+        recommendation: 'أقمشة كتانية خفيفة وقطنية تسمح بمرور الهواء وتدرجات ألوان فاتحة تعكس أشعة الشمس.'
+      },
+      {
+        temperature: 22,
+        condition: 'Mild Breeze',
+        conditionArabic: '22°C - نسيم معتدل',
+        humidity: 48,
+        feelsLike: 22,
+        windSpeed: 18,
+        icon: 'breeze',
+        recommendation: 'مثالي للطبقات الخفيفة، قميص قطني مع بنطال تشينو مريح.'
+      },
+      {
+        temperature: 16,
+        condition: 'Cool & Rainy',
+        conditionArabic: '16°C - معتدل البرودة',
+        humidity: 72,
+        feelsLike: 15,
+        windSpeed: 24,
+        icon: 'rainy',
+        recommendation: 'يُنصح بارتداء أقمشة صوفية ناعمة أو سترة أنيقة مع حذاء جلدي مقاوم للرذاذ.'
+      }
+    ];
+
+    function generateDriveSlots(prefix, category, fileIds) {
+      if (!fileIds || fileIds.length === 0) return [];
+      return fileIds.map((id, idx) => ({
+        id: `${prefix}-${idx + 1}`,
+        image: `https://lh3.googleusercontent.com/d/${id}`,
+        category: category
+      }));
+    }
+
+    // 1. الكاجوال (Casual)
+    const CASUAL_TOPS_IDS = [
+      '14uNIWtzW1hhwxuZGVJc7ZYb5LI0s0bJi', '1oDlam4NkBw4LvxQr4er9SlSDcpskr242', '1sBzRbn8ru2JHb92aL2jmMsBYdap0t4Yb', '1LA-iioRP1GzvnHDuAJNecq4cKW6g7ifk', '1YkkY07B4iVRk2SgTKluYM3CXAYvVw6_W', '15wtaaD2KBLlHsQD7uEU5oALkmFmkcCUY', '1cWoBHnx7_bN8sNV4AbpZ-IIEF9-Txsgx',
+      '1v5JothA3mZW3AVC8-9xcZ-e_eEd5sJEV', '1H9QNCKRNZb2q-trFkOCusEb_vCRHCRt4', '1SnGsIN7Xrxu7-C3ITZlVPPp9EoO44HhO', '1XTbX_1J5idMpqiI66R9UOR7YYgIolCUB', '12wiBEjEyVDib18A5RMZMFq_Tcit40Rsv',
+      '1D7mHwbZAf1VrIcDCcHgeuFcn08XuseMf', '1d4B40l-WESRxY7mNCuYuNi5ujqpb1FFV', '1GioknBB7QSqzL11Qo48b-0xIn_vBCuaO',
+    ];
+    const CASUAL_BOTTOMS_IDS = [
+      '10nXoCq6PC6VCBf_8jLrZuAQPQfwyUCR6', '1JW02h2Qfkuxkh-wyzO91zK6cq1byH_23', '19shJ01WyWeKSKIur2wLUhEezEsXGetTs', '1L8zpRxMtFiaIjKiJGccOUw1CAjp0tpu7', '1yf5-cPAoZGsTDkmtB8LdmEm4lGNarHTY', '1HCCsKwrZkVnCnX7xXS4aC6my2Dyymdsn', '1vWkviq5NJ1LsZxN2DrFSrH6aEXk5b-rK',
+      '1NMAs9JnF_uespJ13SvVHs4dM4wym3Xq0', '14QzUhrpnUy6qZhVKGfFo-C1egO0wX4Ln', '1VNMkzdEgPZKVClxp4VwFIuV-vqmigeHa', '19lLT4-nqmxTmr0Ue58NjnkIzfoGRvbyh', '1RpxY77A0MROnpAvFOqmZmf6Ek1Gsdkbk',
+      '1_y5KimGyPlbSYad5Cj8z_0M76Az4ONS9'
+    ];
+    const CASUAL_SHOES_IDS = [
+      '1wt4PlmLpoQ7Lvw6dcFRFdID8Ys5BCUTm', '1kxHLNRVOROdLt7iAvEJg7IbpXL4UN5oa', '1aV9sQs0Mu6oS82o5XdFBeoDvO7XhY2Rs', '1LFTu9c_fZMbX3mpVUjYAR7_6W5T5FF4n', '1CyPyYnLFlPyW-aOyF_bpO84nHaQ-yF9g',
+      '1bLOaFSdu8j266efxSaSrqM2cmmpu_f8K', '1GU8yElCFRFsri9dPog5Ajs4cNFoXBkN_', '1RLCpPnAVazvYn_Ex-Amwi-p5WEJJv4fw', '15bWExj0QIp26Yn6JHKSpSsheIV3XSlHI', '1Jmraep3Tdj9TWb5KmaMfR53NBUhBenI4',
+      '1TeUjsFLDosu6UwP2TiZCe-w_CBQsm4CX', '1E4Osh67N0eCsvUnhCaPPcwtb0JHJWeRk', '13_nqMtojqHK2JPsCzZI3eKrkIuDqItCM', '1TIKSSidIHZEwXbYY1v-xiTLMqHWXDzRQ', '14ZNta4lgRz3yPBPECI_cjiumlWBDmk5z',
+    ];
+
+    // 2. الرسمي (Formal)
+    const FORMAL_TOPS_IDS = [
+      '1ExpfEENyjWce1FDnxw5xn_eODC5j5n4b', '1RWnmfFdNofAcJgsNfDCAHtrYDbMAM6Jh', '1PNmYYOMg0st3oLKFFTSLtwQJeDnC9cPk', '1cqXra7PTj2NJEiWcLrN27SlIuHFYfh3W', '1osu2GHEPXttMgmSJAP_G1iLd_MY6q8Pc', '1sl7EPo57vyNKGuixrDdUM8JFYjlj0UBc', '1foIqx7TaQk1ueH2sjghVtzlq4Jyy7dzf',
+      '1NlkQl9y2Mw7yy_9lu1tyOe0ecQzdU12n', '1XRgr_W2fhsT6P-FSkzq6c444ashGeY86', '1L9aPYZriAvSTID7RJGSBD6_s8IYnXBHn', '1AU7rRMBLdd5PWz_prO6iLk6LmKrz3BQz', '1853ZA53RHMGPH3wacQtY1Wwoy7k_yPhb',
+      '1HIFtz4RDWezhzjPzE63cZkbzL_AP5RgI',
+    ];
+    const FORMAL_BOTTOMS_IDS = [
+      '1Avf7xKePjhFX38PzXJP7iA59n5-WchNi', '17b9MuRaKc84zdl-k84T6qVMqZvE8O7ah', '1JAPyZy3-y16yJi6sDjXbzxDfPWoaSsni', '1pgFYm9VjwUmDVmV1QSFib8mC4JvPrTVV', '1ugv0a41snxaDNVLdCVAUqyzWNy6KOe8h', '1WifevFdejoTkFWTmLcsXvIQfhavqhZdH', '18NuKM8eAjLgf0Jaft53MYFxzS8wUSZ2g',
+      '1RGmqEerDadx95qARLPuW7OpwE90QJ998', '1Nss5TIcl1KxNbnb735w2DWYfXlWja2Gr', '11bMpQpI4lJtM3vXMRSNL-mLS2i2MAWa4', '1eTIcBiWsWw_mgkDv6jFWADWwZzgOO8OX',
+      '19JN_Heulpzv-hYfP4DZAjoPlIksLmafX',
+    ];
+    const FORMAL_SHOES_IDS = [
+      '1oBuFhIuyVhVTK3YsCMYbnVtOhpzV8x4v', '1iAZ8NXynETfYQXrvBzuSMrYddv6z2Wq2', '1YqZpfkmFObj8yEgVjNHw7fmYsOVU5tMo', '1RXh1Hy1tZBnIBlZwgEaq-ospi_rN4uVN', '1IKkGKNex6MfVroCGyS-k4HIBLGUW302-',
+      '1QTYQE3ylS751lp-rs0roMcAbAU0fE7MM', '1HG3MBRvckqZnvGZyhqzEyzk6NjdSlwyV', '1VbldtGvLPkwunDZye2hXXeD_sqkQHMPc', '1RP-dstjKYCalC5_DGzlFGeZ9qihJHyfr', '1maQdB0IPxywMzaO2NOXj2NBD5n1WFpTC',
+      '1oOHeEf1sfQSee_lDdwwRgHLo8YV3SUUW', '1SWRQ8n3Sckb6N2SXRpSQwvsFugudrnuT',
+    ];
+
+    // 3. الرياضي (Sportswear)
+    const SPORT_TOPS_IDS = [
+      '1fpNGmV1Wro65LXul65woHiYo7tY_lpoW', '1OiJUjcMzvNr2LJawbb9dwqjyu8dl19E4', '1QtX7Yi2sE80E7rcgZ4PmHl1hHcxNXwci', '14HdpkzEpuFItkz63_KCL_MOy1zxaIg2Z', '1mjAafX1U22AGgTK9qjwNnytOqJwWGmgz', '1DzJC1NfuYLBWNCQ8Ptdz-95ZsLUFZgsd', '1raIzBsBljGhdG1wM3ELWqVo8ryN96BBD',
+      '1cp6pvymkXscRd1fgpWG1qJdmXnM-gGsI', '1MQ18mX-KhQAbqUmBqAIWkc0KM4wfwICi', '1lOZ3Gr5QX9clePGctjBHWe_9LuR5gTBi', '1hSI0_YNMHI7OCkrCtjELTf3RhvZmRk_Y', '1ZcCFQhaC0Bqbv_IsJCoVu_OITnRigen4',
+      '1Rt7q6mKTtxxg_VVGuI19vwy6uhTHTmUi', '165G98onvHYKAX4arufcqMK1STgq7dY9X', '1upvln-WR5BlWqiEvsNZtmjSfXS0FtnBw',
+    ];
+    const SPORT_BOTTOMS_IDS = [
+      '1j3N6juGca55Ae-EXLmty2nBdSn5dYUf4', '1PpWvUzDnccPO3wM61KMyZvhV9nOixYo_', '1F8VAkvVAXtQmPgO2S4nkWCySVTcRugws', '15TRA-gBN_nPWmiIch5isBQ6-0Y7vGU2L', '1QrqCdgqutfpGDAF6-OUyFNquwTN_t_Oq', '1T0Ry1le_5X_OJts2vH_DlTK7nbRiYEBz', '1BeNdedLQwD115Z1pLdGtfvw5-5eV3eIx',
+      '1QJSSV7g5z-m16FTf-oUOch-WL5sTjWr0', '1NJgd26M8KbgnzCDRWO1iTG7ix19t62_5', '1Zc08drEZclbsGB9oovsYY892RUIw9Twd', '1mkEe80o9kuUbpOwxIqTXAUa_oKe9SvSp', '1wSrVshD_sKou0aA3zYjbRef1EsGRq2Y0',
+      '1PQ_tDbi85xZJmaA7-5FZD5eP4B0aihTi', '1kqYEHs0UQ5S1r4eqG_CP0shYZioTLp3F', '1x_zzmZ1l2V9xkBaS9mQJGwI_IebKcaSg',
+    ];
+    const SPORT_SHOES_IDS = [
+      '1uqGeK8JQLJaUc1AtYUY97J0M79G_iAGB', '14zg-lp2hEb6J1mv_heA1HZkM6sT35uWS',  '1a2VfIiimuRbzz7_5cxIxaDOvV15iro4M', '1-8OUVXGYRIuc8_JLlAZccSvDyV2h9Rqf', '128kd2dLMAkLiaQjTmNxHJ2DjqL56fnFn', '1C5xl1BpiO2pCaX5gehLFP478MyY9idlp',
+      '1gzqLAst4LtSOcXlq09ldQQyLho0MftyE', '1StpxfWCIjTVWmoA9i4ZuvlDyjfFJrZEY', '1ajiZ4kGY7F0IbOrqiMnkodq1CQqc8NPa',
+    ];
+
+    // Generate Slots Automatically
+    const CASUAL_TOPS_SLOTS = generateDriveSlots('top-c', 'casual', CASUAL_TOPS_IDS);
+    const CASUAL_BOTTOMS_SLOTS = generateDriveSlots('bottom-c', 'casual', CASUAL_BOTTOMS_IDS);
+    const CASUAL_SHOES_SLOTS = generateDriveSlots('shoes-c', 'casual', CASUAL_SHOES_IDS);
+
+    const FORMAL_TOPS_SLOTS = generateDriveSlots('top-f', 'formal', FORMAL_TOPS_IDS);
+    const FORMAL_BOTTOMS_SLOTS = generateDriveSlots('bottom-f', 'formal', FORMAL_BOTTOMS_IDS);
+    const FORMAL_SHOES_SLOTS = generateDriveSlots('shoes-f', 'formal', FORMAL_SHOES_IDS);
+
+    const SPORT_TOPS_SLOTS = generateDriveSlots('top-s', 'sportswear', SPORT_TOPS_IDS);
+    const SPORT_BOTTOMS_SLOTS = generateDriveSlots('bottom-s', 'sportswear', SPORT_BOTTOMS_IDS);
+    const SPORT_SHOES_SLOTS = generateDriveSlots('shoes-s', 'sportswear', SPORT_SHOES_IDS);
+
+    const MANUAL_TOPS_GALLERY = [...CASUAL_TOPS_SLOTS, ...FORMAL_TOPS_SLOTS, ...SPORT_TOPS_SLOTS];
+    const MANUAL_BOTTOMS_GALLERY = [...CASUAL_BOTTOMS_SLOTS, ...FORMAL_BOTTOMS_SLOTS, ...SPORT_BOTTOMS_SLOTS];
+    const MANUAL_SHOES_GALLERY = [...CASUAL_SHOES_SLOTS, ...FORMAL_SHOES_SLOTS, ...SPORT_SHOES_SLOTS];
+
+    function createClothingItemFromSlot(slot, type) {
+      const catArabic = slot.category === 'casual' ? 'كاجوال' : slot.category === 'formal' ? 'رسمي' : 'رياضي';
+      const typeArabic = type === 'top' ? 'قميص / تيشيرت' : type === 'bottom' ? 'بنطال' : 'حذاء';
+      const colorHex = slot.category === 'casual' ? '#E8A2A8' : slot.category === 'formal' ? '#2C3038' : '#438E6A';
+      const material = slot.category === 'formal' ? 'قماش فاخر منسوج' : slot.category === 'sportswear' ? 'نسيج مسامي عالي المرونة' : 'قطن ناعم ومريح';
+
+      return {
+        id: slot.id,
+        name: `${typeArabic} ${catArabic} #${slot.id.split('-').pop()}`,
+        category: slot.category,
+        type,
+        image: slot.image,
+        colorName: 'أنيق',
+        colorHex,
+        material,
+        season: 'كل المواسم',
+        warmthLevel: 'معتدل',
+        isClean: true,
+        timesWorn: 1,
+      };
+    }
+
+    const FALLBACK_ITEM = (type, category) => ({
+      id: `fallback-${type}`,
+      name: `${type === 'top' ? 'قميص' : type === 'bottom' ? 'بنطال' : 'حذاء'} افتراضي`,
+      category: category,
+      type: type,
+      image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=400',
+      colorName: 'أنيق',
+      colorHex: '#E8A2A8',
+      material: 'قطن ناعم',
+      season: 'كل المواسم',
+      warmthLevel: 'معتدل',
+      isClean: true,
+      timesWorn: 0,
+    });
+
+    const INITIAL_CLOTHING_ITEMS = [
+      ...CASUAL_TOPS_SLOTS.map((s) => createClothingItemFromSlot(s, 'top')),
+      ...CASUAL_BOTTOMS_SLOTS.map((s) => createClothingItemFromSlot(s, 'bottom')),
+      ...CASUAL_SHOES_SLOTS.map((s) => createClothingItemFromSlot(s, 'shoes')),
+
+      ...FORMAL_TOPS_SLOTS.map((s) => createClothingItemFromSlot(s, 'top')),
+      ...FORMAL_BOTTOMS_SLOTS.map((s) => createClothingItemFromSlot(s, 'bottom')),
+      ...FORMAL_SHOES_SLOTS.map((s) => createClothingItemFromSlot(s, 'shoes')),
+
+      ...SPORT_TOPS_SLOTS.map((s) => createClothingItemFromSlot(s, 'top')),
+      ...SPORT_BOTTOMS_SLOTS.map((s) => createClothingItemFromSlot(s, 'bottom')),
+      ...SPORT_SHOES_SLOTS.map((s) => createClothingItemFromSlot(s, 'shoes')),
+    ];
+
+    const INITIAL_LAUNDRY_ITEMS = [
+      {
+        id: 'laundry-1',
+        name: 'قميص حريري كلاسيكي أسود',
+        type: 'top',
+        category: 'formal',
+        colorName: 'أسود فحمي',
+        cycleRemaining: '18 دقيقة متبقية',
+        washType: 'غسيل لطيف بالبخار (Eco-Steam)'
+      },
+      {
+        id: 'laundry-2',
+        name: 'بنطال جينز أزرق مغسول',
+        type: 'bottom',
+        category: 'casual',
+        colorName: 'أزرق نيلي',
+        cycleRemaining: '24 دقيقة متبقية',
+        washType: 'دورة باردة لحماية الأنسجة'
+      },
+      {
+        id: 'laundry-3',
+        name: 'تيشيرت بولو كريمي مطرز',
+        type: 'top',
+        category: 'casual',
+        colorName: 'كريمي دافئ',
+        cycleRemaining: '35 دقيقة متبقية',
+        washType: 'تجفيف هوائي معطر'
+      },
+      {
+        id: 'laundry-4',
+        name: 'بنطال رياضي أسود مقاوم للعرق',
+        type: 'bottom',
+        category: 'sportswear',
+        colorName: 'أسود رياضي',
+        cycleRemaining: '10 دقائق متبقية',
+        washType: 'تعقيم مضاد للبكتيريا بالأوزون'
+      },
+      {
+        id: 'laundry-5',
+        name: 'حذاء سنيكرز جلد كانفاس رمادي',
+        type: 'shoes',
+        category: 'casual',
+        colorName: 'رمادي ضبابي',
+        cycleRemaining: 'مرحلة التجفيف بالأشعة فوق البنفسجية',
+        washType: 'تنظيف أحذية جاف فائق الدقة'
+      }
+    ];
+
+    // =========================================================================
+    // 🌅 WakeUpScreen Component
+    // =========================================================================
+    const WakeUpScreen = ({ onWakeUp, weather }) => {
+      const [time, setTime] = useState('07:12 AM');
+
+      useEffect(() => {
+        const updateTime = () => {
+          const now = new Date();
+          const hours = now.getHours();
+          const minutes = now.getMinutes().toString().padStart(2, '0');
+          const isAm = hours < 12;
+          const displayHours = (hours % 12 || 12).toString().padStart(2, '0');
+          const period = isAm ? 'ص' : 'م';
+          setTime(`${displayHours}:${minutes} ${period}`);
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      return (
+        <div
+          onClick={onWakeUp}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-2xl text-white cursor-pointer select-none transition-all duration-700 animate-in fade-in"
+        >
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[#D8838B]/15 rounded-full blur-[100px] sm:blur-[140px] pointer-events-none" />
+
+          <div className="absolute top-4 sm:top-8 left-4 sm:left-8 flex items-center gap-2 text-stone-400 text-[10px] sm:text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>EasyWear Smart Mirror · مستشعر الحضور نشط</span>
+          </div>
+
+          <div className="relative z-10 max-w-xl text-center flex flex-col items-center space-y-4 sm:space-y-6 w-full">
+            <div className="flex items-center gap-2 text-stone-400 text-sm font-medium">
+              <Clock className="w-4 h-4 text-[#E8A2A8]" />
+              <span className="text-3xl sm:text-5xl font-extrabold tracking-widest font-mono text-white/90">
+                {time}
+              </span>
+            </div>
+
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#1E1E2C]/80 border border-white/15 backdrop-blur-2xl shadow-2xl relative overflow-hidden w-full">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-2xl bg-gradient-to-tr from-[#D8838B] to-[#E8A2A8] text-white flex items-center justify-center shadow-lg shadow-[#D8838B]/30">
+                <Sun className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin-slow" />
+              </div>
+
+              <h1 className="text-xl sm:text-3xl font-extrabold font-['Cairo',sans-serif] text-white leading-relaxed">
+                صباح الخير! درجة الحرارة اليوم {weather.temperature}°م، {weather.condition === 'Sunny' ? 'مشمس' : 'معتدل'}.
+              </h1>
+
+              <p className="text-sm sm:text-base text-stone-300 mt-2 font-medium">
+                هل نختار إطلالتك لليوم؟
+              </p>
+
+              <div className="mt-6 sm:mt-8 flex flex-col items-center gap-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onWakeUp();
+                  }}
+                  className="w-full sm:w-auto px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-[#D8838B] to-[#E8A2A8] text-white font-bold text-sm sm:text-base shadow-xl shadow-[#D8838B]/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                >
+                  <Sparkles className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
+                  <span>ابدأ التنسيق / تفعيل المرآة</span>
+                </button>
+                <span className="text-[11px] sm:text-xs text-stone-400">
+                  أو المس أي مكان على شاشة المرآة للاستيقاظ
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // ⛅ WeatherWidget Component
+    // =========================================================================
+    const WeatherWidget = ({ weather, onSelectWeather, availableWeathers }) => {
+      const [isOpen, setIsOpen] = useState(false);
+
+      const getWeatherIcon = (icon) => {
+        switch (icon) {
+          case 'sunny':
+            return <Sun className="w-8 h-8 sm:w-10 sm:h-10 text-white stroke-[1.75]" />;
+          case 'breeze':
+            return <Wind className="w-8 h-8 sm:w-10 sm:h-10 text-sky-200 stroke-[1.75]" />;
+          case 'rainy':
+            return <CloudRain className="w-8 h-8 sm:w-10 sm:h-10 text-blue-200 stroke-[1.75]" />;
+          default:
+            return <CloudSun className="w-8 h-8 sm:w-10 sm:h-10 text-amber-200 stroke-[1.75]" />;
+        }
+      };
+
+      return (
+        <div className="relative w-full rounded-3xl bg-[#1E1E2C]/75 backdrop-blur-2xl border border-white/15 p-4 sm:p-5 text-white shadow-2xl overflow-visible transition-all duration-300">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm md:text-base font-semibold text-stone-200 font-['Cairo',sans-serif]">
+              توقعات اليوم
+            </h3>
+          </div>
+
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-center p-2 rounded-2xl bg-white/5 border border-white/10 shadow-inner">
+              {getWeatherIcon(weather.icon)}
+            </div>
+
+            <div className="text-left">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-light tracking-tight font-mono text-white">
+                {weather.temperature}°
+              </div>
+              <div className="text-xs sm:text-sm md:text-base font-medium text-stone-300 text-left mt-0.5">
+                {weather.condition === 'Sunny' ? 'مشمس' : weather.conditionArabic.split('-')[1]?.trim() || 'معتدل'}
+              </div>
+            </div>
+          </div>
+
+          {isOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 p-2.5 rounded-2xl bg-[#1E1E2C]/95 backdrop-blur-3xl border border-white/20 shadow-2xl z-40 text-right animate-in fade-in">
+              <div className="text-[11px] text-stone-400 font-bold px-2 py-1">
+                اختر حالة جوية لاختبار تنسيق الخزانة:
+              </div>
+              <div className="space-y-1 mt-1">
+                {availableWeathers.map((w) => (
+                  <button
+                    key={w.condition}
+                    onClick={() => {
+                      onSelectWeather(w);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors ${
+                      weather.temperature === w.temperature
+                        ? 'bg-[#E8A2A8]/20 text-white font-bold border border-[#E8A2A8]/40'
+                        : 'text-stone-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <span>{w.conditionArabic}</span>
+                    <span className="font-mono text-[11px]">{w.temperature}°C</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // 📊 WardrobeStatsWidget Component
+    // =========================================================================
+    const WardrobeStatsWidget = ({
+      totalCount,
+      topsCount,
+      bottomsCount,
+      shoesCount,
+      laundryCount,
+      onOpenLaundryDrawer,
+    }) => {
+      return (
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#1E1E2C]/75 backdrop-blur-2xl border border-white/15 text-white shadow-2xl space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm md:text-base font-semibold text-stone-200 font-['Cairo',sans-serif]">
+              المحتوى الإجمالي
+            </h3>
+            <span className="text-[11px] sm:text-xs text-emerald-400 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              مباشر RFID
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10">
+            <div>
+              <div className="text-xs text-stone-400">إجمالي قطع الخزانة</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-0.5">
+                {totalCount} <span className="text-xs text-[#E8A2A8] font-sans">قطعة</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-stone-400">في سلة الغسيل</div>
+              <div className="text-xs sm:text-sm font-bold text-amber-300 font-mono">{laundryCount} قطع</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="text-[10px] text-stone-400">علوي</div>
+              <div className="text-xs sm:text-sm font-bold text-white font-mono mt-0.5">{topsCount}</div>
+            </div>
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="text-[10px] text-stone-400">سفلي</div>
+              <div className="text-xs sm:text-sm font-bold text-white font-mono mt-0.5">{bottomsCount}</div>
+            </div>
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="text-[10px] text-stone-400">أحذية</div>
+              <div className="text-xs sm:text-sm font-bold text-white font-mono mt-0.5">{shoesCount}</div>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenLaundryDrawer}
+            className="w-full p-2.5 sm:p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-bold transition-all flex items-center justify-between active:scale-98"
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              <span>قطع قيد الغسيل ({laundryCount})</span>
+            </div>
+            <ChevronLeft className="w-4 h-4 text-amber-300" />
+          </button>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // 🪞 MainMirrorPanel Component
+    // =========================================================================
+    const HorizontalPhotoRow = ({ title, items, selectedId, selectedImage, onSelectImage }) => {
+      const scrollContainerRef = useRef(null);
+
+      const scroll = (direction) => {
+        if (scrollContainerRef.current) {
+          const scrollAmount = direction === 'left' ? -220 : 220;
+          scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      };
+
+      const handleWheel = (e) => {
+        if (scrollContainerRef.current && e.deltaY !== 0) {
+          scrollContainerRef.current.scrollLeft += e.deltaY;
+        }
+      };
+
+      if (!items || items.length === 0) {
+        return (
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center text-xs text-stone-400">
+            لا توجد صور مضافة لهذه الفئة حتى الآن.
+          </div>
+        );
+      }
+
+      return (
+        <div className="relative group">
+          <div className="flex items-center justify-between mb-1.5 px-1">
+            <span className="text-xs font-bold text-stone-200 font-['Cairo',sans-serif]">
+              {title}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => scroll('right')}
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 text-stone-300 hover:text-white transition-all text-xs"
+                title="السابق"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => scroll('left')}
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 text-stone-300 hover:text-white transition-all text-xs"
+                title="التالي"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={scrollContainerRef}
+            onWheel={handleWheel}
+            className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto overflow-y-hidden py-1.5 px-1 scroll-smooth select-none cursor-grab active:cursor-grabbing no-scrollbar touch-scroll"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {items.map((slot) => {
+              const cleanSelected = selectedImage ? selectedImage.split('?')[0].split('/').pop() : '';
+              const cleanSlot = slot.image ? slot.image.split('?')[0].split('/').pop() : '';
+              const isSelected =
+                (Boolean(selectedId) && selectedId === slot.id) ||
+                (Boolean(selectedImage) && selectedImage === slot.image) ||
+                (Boolean(cleanSelected) && Boolean(cleanSlot) && cleanSelected === cleanSlot);
+
+              return (
+                <div
+                  key={slot.id}
+                  onClick={() => onSelectImage(slot)}
+                  className={`w-20 h-24 sm:w-28 sm:h-32 shrink-0 rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 group/card ${
+                    isSelected
+                      ? 'ring-2 ring-[#E8A2A8] border-2 border-white scale-105 shadow-xl shadow-[#E8A2A8]/25'
+                      : 'border border-white/15 hover:border-[#E8A2A8]/70 hover:scale-102 opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={slot.image}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=300';
+                    }}
+                    className="w-full h-full object-cover group-hover/card:scale-108 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#E8A2A8] text-white flex items-center justify-center shadow-md">
+                      <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    const MainMirrorPanel = ({
+      selectedCategory,
+      onSelectCategory,
+      currentOutfit,
+      onUpdatePiece,
+      onConfirmOutfit,
+      weather,
+      allItems,
+    }) => {
+      const [activeStep, setActiveStep] = useState('styles');
+      const [currentTime, setCurrentTime] = useState('7:12 AM');
+
+      useEffect(() => {
+        const updateTime = () => {
+          const now = new Date();
+          const hours = now.getHours();
+          const minutes = now.getMinutes().toString().padStart(2, '0');
+          const isAm = hours < 12;
+          const displayHours = (hours % 12 || 12).toString();
+          setCurrentTime(`${displayHours}:${minutes} ${isAm ? 'AM' : 'PM'}`);
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const categoryTops = useMemo(() => {
+        const list = MANUAL_TOPS_GALLERY.filter((item) => item.category === selectedCategory);
+        if (list.length > 0) return list;
+        return allItems
+          .filter((i) => i.type === 'top' && i.category === selectedCategory)
+          .map((i) => ({ id: i.id, image: i.image, category: i.category }));
+      }, [selectedCategory, allItems]);
+
+      const categoryBottoms = useMemo(() => {
+        const list = MANUAL_BOTTOMS_GALLERY.filter((item) => item.category === selectedCategory);
+        if (list.length > 0) return list;
+        return allItems
+          .filter((i) => i.type === 'bottom' && i.category === selectedCategory)
+          .map((i) => ({ id: i.id, image: i.image, category: i.category }));
+      }, [selectedCategory, allItems]);
+
+      const categoryShoes = useMemo(() => {
+        const list = MANUAL_SHOES_GALLERY.filter((item) => item.category === selectedCategory);
+        if (list.length > 0) return list;
+        return allItems
+          .filter((i) => i.type === 'shoes' && i.category === selectedCategory)
+          .map((i) => ({ id: i.id, image: i.image, category: i.category }));
+      }, [selectedCategory, allItems]);
+
+      const handleSelectTop = (slot) => {
+        const matched = allItems.find((i) => (i.id === slot.id || i.image === slot.image) && i.type === 'top');
+        if (matched) {
+          onUpdatePiece('top', { ...matched, id: slot.id, image: slot.image, category: slot.category });
+        } else {
+          onUpdatePiece('top', createClothingItemFromSlot(slot, 'top'));
+        }
+      };
+
+      const handleSelectBottom = (slot) => {
+        const matched = allItems.find((i) => (i.id === slot.id || i.image === slot.image) && i.type === 'bottom');
+        if (matched) {
+          onUpdatePiece('bottom', { ...matched, id: slot.id, image: slot.image, category: slot.category });
+        } else {
+          onUpdatePiece('bottom', createClothingItemFromSlot(slot, 'bottom'));
+        }
+      };
+
+      const handleSelectShoes = (slot) => {
+        const matched = allItems.find((i) => (i.id === slot.id || i.image === slot.image) && i.type === 'shoes');
+        if (matched) {
+          onUpdatePiece('shoes', { ...matched, id: slot.id, image: slot.image, category: slot.category });
+        } else {
+          onUpdatePiece('shoes', createClothingItemFromSlot(slot, 'shoes'));
+        }
+      };
+
+      const getCategoryLabel = (cat) => {
+        if (cat === 'casual') return 'كاجوال';
+        if (cat === 'formal') return 'رسمي';
+        return 'رياضي';
+      };
+
+      return (
+        <div className="flex-1 w-full rounded-3xl bg-[#1E1E2C]/80 backdrop-blur-3xl border border-white/20 p-4 sm:p-5 md:p-6 text-white shadow-2xl relative overflow-visible flex flex-col justify-between min-h-[500px] sm:min-h-[580px]">
+          <div className="absolute top-0 right-0 w-60 sm:w-80 h-60 sm:h-80 bg-[#D8838B]/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex items-center justify-between pb-3 border-b border-white/10 text-stone-300">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center p-1 bg-black/30 rounded-xl border border-white/10 text-xs">
+                <button
+                  onClick={() => setActiveStep('styles')}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all ${
+                    activeStep === 'styles' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'
+                  }`}
+                >
+                  1. استعراض الأنماط
+                </button>
+                <button
+                  onClick={() => setActiveStep('pieces')}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                    activeStep === 'pieces'
+                      ? 'bg-[#E8A2A8]/30 text-white font-bold border border-[#E8A2A8]/40'
+                      : 'text-stone-400 hover:text-white'
+                  }`}
+                >
+                  <span>2. تفصيل القطع</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="text-xs sm:text-sm font-semibold font-mono tracking-wider text-white">
+              {currentTime}
+            </div>
+          </div>
+
+          {activeStep === 'styles' && (
+            <div className="relative z-10 my-4 flex-1 flex flex-col justify-between space-y-4 animate-in fade-in duration-300">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-stone-300 font-medium">
+                    اختر النمط المناسب لجدولك اليوم:
+                  </span>
+                  <span className="text-[11px] text-[#E8A2A8] font-mono">
+                    متوافق مع {weather.temperature}°م
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+                  {/* Casual Card */}
+                  <div
+                    onClick={() => onSelectCategory('casual')}
+                    className={`cursor-pointer rounded-2xl p-2.5 sm:p-4 flex flex-col justify-between items-center transition-all duration-300 relative border group active:scale-98 ${
+                      selectedCategory === 'casual'
+                        ? 'bg-gradient-to-b from-[#E8A2A8]/30 to-[#1E1E2C] border-[#E8A2A8] shadow-xl shadow-[#E8A2A8]/20 ring-2 ring-[#E8A2A8]'
+                        : 'bg-white/5 hover:bg-white/10 border-white/10'
+                    }`}
+                  >
+                    <div className="w-full h-48 sm:h-64 md:h-72 lg:h-[320px] rounded-xl bg-black/25 overflow-hidden flex items-center justify-center relative">
+                      <img
+                        src={CASUAL_TOPS_SLOTS[0]?.image || 'https://lh3.googleusercontent.com/d/14uNIWtzW1hhwxuZGVJc7ZYb5LI0s0bJi'}
+                        alt="كاجوال"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=400';
+                        }}
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                      {selectedCategory === 'casual' && (
+                        <div className="absolute top-2 right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#E8A2A8] text-white flex items-center justify-center shadow-md">
+                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center mt-2 sm:mt-3">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white block font-['Cairo',sans-serif]">
+                        كاجوال
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-stone-300 mt-0.5 hidden sm:block">
+                        مريح، عملي وإطلالة يومية
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sportswear Card */}
+                  <div
+                    onClick={() => onSelectCategory('sportswear')}
+                    className={`cursor-pointer rounded-2xl p-2.5 sm:p-4 flex flex-col justify-between items-center transition-all duration-300 relative border group active:scale-98 ${
+                      selectedCategory === 'sportswear'
+                        ? 'bg-gradient-to-b from-[#E8A2A8]/30 to-[#1E1E2C] border-[#E8A2A8] shadow-xl shadow-[#E8A2A8]/20 ring-2 ring-[#E8A2A8]'
+                        : 'bg-white/5 hover:bg-white/10 border-white/10'
+                    }`}
+                  >
+                    <div className="w-full h-48 sm:h-64 md:h-72 lg:h-[320px] rounded-xl bg-black/25 overflow-hidden flex items-center justify-center relative">
+                      <img
+                        src={SPORT_TOPS_SLOTS[0]?.image || 'https://lh3.googleusercontent.com/d/1fpNGmV1Wro65LXul65woHiYo7tY_lpoW'}
+                        alt="رياضي"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=400';
+                        }}
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                      {selectedCategory === 'sportswear' && (
+                        <div className="absolute top-2 right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#E8A2A8] text-white flex items-center justify-center shadow-md">
+                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center mt-2 sm:mt-3">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white block font-['Cairo',sans-serif]">
+                        رياضي
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-stone-300 mt-0.5 hidden sm:block">
+                        خفيف ومرن للحركة
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Formal Card */}
+                  <div
+                    onClick={() => onSelectCategory('formal')}
+                    className={`cursor-pointer rounded-2xl p-2.5 sm:p-4 flex flex-col justify-between items-center transition-all duration-300 relative border group active:scale-98 ${
+                      selectedCategory === 'formal'
+                        ? 'bg-gradient-to-b from-[#E8A2A8]/30 to-[#1E1E2C] border-[#E8A2A8] shadow-xl shadow-[#E8A2A8]/20 ring-2 ring-[#E8A2A8]'
+                        : 'bg-white/5 hover:bg-white/10 border-white/10'
+                    }`}
+                  >
+                    <div className="w-full h-48 sm:h-64 md:h-72 lg:h-[320px] rounded-xl bg-black/25 overflow-hidden flex items-center justify-center relative">
+                      <img
+                        src={FORMAL_TOPS_SLOTS[0]?.image || 'https://lh3.googleusercontent.com/d/1ExpfEENyjWce1FDnxw5xn_eODC5j5n4b'}
+                        alt="رسمي"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400';
+                        }}
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                      {selectedCategory === 'formal' && (
+                        <div className="absolute top-2 right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#E8A2A8] text-white flex items-center justify-center shadow-md">
+                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center mt-2 sm:mt-3">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-white block font-['Cairo',sans-serif]">
+                        رسمي
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-stone-300 mt-0.5 hidden sm:block">
+                        أنيق للعمل والمناسبات
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-center">
+                <button
+                  onClick={() => setActiveStep('pieces')}
+                  className="w-full sm:w-auto min-w-[280px] sm:min-w-[320px] py-3.5 px-8 rounded-2xl bg-gradient-to-r from-[#D8838B] to-[#E8A2A8] hover:brightness-105 text-white text-sm font-bold shadow-xl flex items-center justify-center gap-2.5 transition-all active:scale-98 mx-auto"
+                >
+                  <span>التالي: اختيار الملابس</span>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeStep === 'pieces' && (
+            <div className="relative z-10 my-3 flex-1 flex flex-col justify-between space-y-4 animate-in fade-in duration-300">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-white font-['Cairo',sans-serif]">
+                      قطع نمط ({getCategoryLabel(selectedCategory)}):
+                    </span>
+                    <span className="text-[11px] sm:text-xs bg-[#E8A2A8]/20 text-[#E8A2A8] px-2.5 py-0.5 rounded-full border border-[#E8A2A8]/30 font-medium">
+                      {categoryTops.length} شيرت • {categoryBottoms.length} بنطال • {categoryShoes.length} حذاء
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveStep('styles')}
+                    className="text-xs text-stone-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 flex items-center gap-1 transition-colors"
+                  >
+                    <span>تغيير النمط</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <HorizontalPhotoRow
+                    title={`1. الشيرت والقمصان (${categoryTops.length} قطع ${getCategoryLabel(selectedCategory)})`}
+                    items={categoryTops}
+                    selectedId={currentOutfit.top.id}
+                    selectedImage={currentOutfit.top.image}
+                    onSelectImage={handleSelectTop}
+                  />
+
+                  <HorizontalPhotoRow
+                    title={`2. البناطيل (${categoryBottoms.length} قطع ${getCategoryLabel(selectedCategory)})`}
+                    items={categoryBottoms}
+                    selectedId={currentOutfit.bottom.id}
+                    selectedImage={currentOutfit.bottom.image}
+                    onSelectImage={handleSelectBottom}
+                  />
+
+                  <HorizontalPhotoRow
+                    title={`3. الأحذية (${categoryShoes.length} قطع ${getCategoryLabel(selectedCategory)})`}
+                    items={categoryShoes}
+                    selectedId={currentOutfit.shoes.id}
+                    selectedImage={currentOutfit.shoes.image}
+                    onSelectImage={handleSelectShoes}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 pb-1">
+                <button
+                  onClick={onConfirmOutfit}
+                  className="w-full py-3.5 sm:py-4 px-6 rounded-2xl bg-[#438E6A] hover:bg-[#3B7E5E] active:scale-98 text-white font-bold text-sm sm:text-base shadow-xl shadow-[#438E6A]/25 transition-all flex items-center justify-center gap-2 font-['Cairo',sans-serif]"
+                >
+                  <span>الإنتهاء من التنسيق</span>
+                  <Check className="w-5 h-5 text-white stroke-[2.5]" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // ✨ ConfirmationModal Component
+    // =========================================================================
+    const ConfirmationModal = ({ outfit, weather, onClose }) => {
+      const [isDispensing, setIsDispensing] = useState(true);
+      const [isSavedToCalendar, setIsSavedToCalendar] = useState(false);
+
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          setIsDispensing(false);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }, []);
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200 touch-scroll">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1E1E2C]/90 backdrop-blur-2xl border border-white/20 p-5 sm:p-8 text-white shadow-2xl overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-[#D8838B]/30 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-[#E8A2A8]/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="text-center relative z-10 pb-4 sm:pb-5 border-b border-white/10">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#D8838B] to-[#E8A2A8] text-white mb-2 sm:mb-3 shadow-lg shadow-[#D8838B]/30">
+                <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <h2 className="text-xl sm:text-3xl font-extrabold text-white font-['Cairo',sans-serif] tracking-tight">
+                إطلالتك جاهزة! استمتع بيومك
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-300 mt-1 max-w-md mx-auto">
+                تمت موازنة درجات الألوان وتجهيز الأقمشة المناسبة لدرجة حرارة {weather.conditionArabic}.
+              </p>
+            </div>
+
+            <div className="my-4 sm:my-5 p-3 sm:p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className={`p-2 rounded-xl shrink-0 ${isDispensing ? 'bg-amber-400/20 text-amber-300 animate-spin' : 'bg-emerald-400/20 text-emerald-300'}`}>
+                  <Shirt className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white leading-snug">
+                    {isDispensing ? 'جاري تحريك الشماعة الذكية...' : 'الشماعة الذكية رقم #14 جاهزة للاستلام!'}
+                  </div>
+                  <div className="text-[10px] text-stone-400">
+                    ميزة EasyWear Smart Dispenser
+                  </div>
+                </div>
+              </div>
+              <span className={`text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-1 rounded-full shrink-0 ${isDispensing ? 'bg-amber-500/20 text-amber-200' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                {isDispensing ? 'قيد التجهيز' : 'جاهزة'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 my-4">
+              <div className="p-2 sm:p-3 rounded-2xl bg-white/5 border border-white/10 text-right">
+                <div className="w-full h-20 sm:h-28 rounded-xl overflow-hidden bg-black/30 mb-2 relative">
+                  <img
+                    src={outfit.top.image}
+                    alt={outfit.top.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=300';
+                    }}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded bg-black/60 text-white">
+                    علوية
+                  </span>
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-white truncate">
+                  {outfit.top.name}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-stone-300 truncate mt-0.5">
+                  {outfit.top.colorName} · {outfit.top.material}
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-3 rounded-2xl bg-white/5 border border-white/10 text-right">
+                <div className="w-full h-20 sm:h-28 rounded-xl overflow-hidden bg-black/30 mb-2 relative">
+                  <img
+                    src={outfit.bottom.image}
+                    alt={outfit.bottom.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=300';
+                    }}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded bg-black/60 text-white">
+                    سفلية
+                  </span>
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-white truncate">
+                  {outfit.bottom.name}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-stone-300 truncate mt-0.5">
+                  {outfit.bottom.colorName} · {outfit.bottom.material}
+                </div>
+              </div>
+
+              <div className="p-2 sm:p-3 rounded-2xl bg-white/5 border border-white/10 text-right">
+                <div className="w-full h-20 sm:h-28 rounded-xl overflow-hidden bg-black/30 mb-2 relative">
+                  <img
+                    src={outfit.shoes.image}
+                    alt={outfit.shoes.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=300';
+                    }}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-1 right-1 text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded bg-black/60 text-white">
+                    حذاء
+                  </span>
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-white truncate">
+                  {outfit.shoes.name}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-stone-300 truncate mt-0.5">
+                  {outfit.shoes.colorName} · {outfit.shoes.material}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 sm:mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3">
+              <button
+                onClick={() => setIsSavedToCalendar(true)}
+                className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  isSavedToCalendar
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'bg-white/10 hover:bg-white/15 text-stone-200 border border-white/10'
+                }`}
+              >
+                {isSavedToCalendar ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <span>تم الحفظ في روزنامة الإطلالات!</span>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-4 h-4 text-[#E8A2A8]" />
+                    <span>تسجيل الإطلالة في الروزنامة</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={onClose}
+                className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#D8838B] to-[#E8A2A8] text-white text-xs font-bold shadow-lg hover:brightness-105 active:scale-98 transition-all flex items-center justify-center gap-2"
+              >
+                <span>العودة لشاشة المرآة</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // 🧺 LaundryDrawer Component
+    // =========================================================================
+    const LaundryDrawer = ({ isOpen, onClose, laundryItems, onReturnToCloset, onReturnAll }) => {
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-md animate-in fade-in duration-200 touch-scroll">
+          <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl bg-[#1E1E2C]/95 backdrop-blur-2xl border border-white/20 p-5 sm:p-6 text-white shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                  <h3 className="text-sm sm:text-base font-bold text-white font-['Cairo',sans-serif]">
+                    متتبع دورة الغسيل والصيانة الذكية
+                  </h3>
+                </div>
+                <p className="text-[11px] sm:text-xs text-stone-300 mt-0.5">
+                  قيد الغسيل: {laundryItems.length} قطع غير متاحة حالياً في الخزانة
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-stone-300 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="my-4 space-y-2.5 max-h-[320px] sm:max-h-[380px] overflow-y-auto pr-1 touch-scroll">
+              {laundryItems.length === 0 ? (
+                <div className="py-10 sm:py-12 text-center text-stone-400">
+                  <CheckCircle2 className="w-9 h-9 sm:w-10 sm:h-10 text-emerald-400 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-white">كل الملابس نظيفة ومتوفرة بالخزانة!</p>
+                  <p className="text-xs text-stone-400 mt-1">لا توجد قطع قيد الغسيل حالياً.</p>
+                </div>
+              ) : (
+                laundryItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 sm:p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/30 transition-all flex items-center justify-between gap-3 text-right"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-white">
+                        {item.name}
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-stone-300 mt-0.5">
+                        اللون: {item.colorName} · النمط: {item.category === 'formal' ? 'رسمي' : item.category === 'sportswear' ? 'رياضي' : 'كاجوال'}
+                      </div>
+                      <div className="text-[10px] text-amber-300 flex items-center gap-1.5 mt-1 font-mono">
+                        <Clock className="w-3 h-3" />
+                        <span>{item.cycleRemaining}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => onReturnToCloset(item.id)}
+                      title="اكتمل الغسيل وإعادة إلى الخزانة"
+                      className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/10 hover:bg-emerald-500/20 text-stone-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 text-[11px] sm:text-xs transition-colors shrink-0 flex items-center gap-1 active:scale-95"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                      <span>إعادة</span>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+              <span className="text-[10px] sm:text-[11px] text-stone-400">
+                تحديث مباشر عبر IoT
+              </span>
+              {laundryItems.length > 0 && (
+                <button
+                  onClick={onReturnAll}
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#E8A2A8]/20 hover:bg-[#E8A2A8]/30 text-[#E8A2A8] font-bold border border-[#E8A2A8]/40 transition-colors text-xs active:scale-95"
+                >
+                  استرجاع الكل
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // 💼 BusinessPitchModal Component
+    // =========================================================================
+    const BusinessPitchModal = ({ isOpen, onClose }) => {
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200 touch-scroll">
+          <div className="relative w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1E1E2C]/95 backdrop-blur-2xl border border-white/20 p-5 sm:p-8 text-white shadow-2xl">
+            <div className="absolute -top-20 -left-20 w-60 h-60 bg-[#D8838B]/25 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 sm:p-2.5 rounded-2xl bg-gradient-to-tr from-[#D8838B] to-[#E8A2A8] text-white">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-[#E8A2A8]">
+                    مشروع مساق إدارة وريادة الأعمال الجامعي
+                  </div>
+                  <h2 className="text-base sm:text-xl font-bold text-white font-['Cairo',sans-serif]">
+                    وثيقة مشروع EasyWear Smart Closet
+                  </h2>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-stone-300 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+
+            <div className="my-4 sm:my-6 space-y-4 sm:space-y-5 text-right relative z-10">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#E8A2A8] mb-1.5">
+                  <Compass className="w-4 h-4" />
+                  <span>الرؤية (Vision)</span>
+                </div>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  تحويل كل خزانة منزلية إلى مرآة ذكية تفاعلية فاخرة تمنح المستخدم منسق أزياء شخصي متصل بالواقع والطقس والمهام اليومية، مما يلغي الحيرة الصباحية ويزيد استدامة الأزياء.
+                </p>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#E8A2A8] mb-1.5">
+                  <Target className="w-4 h-4" />
+                  <span>الرسالة (Mission)</span>
+                </div>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  دمج حلول إنترنت الأشياء (IoT) والواجهات الزجاجية الذكية لتقديم تجربة تنسيق يومية سلسة، موفرة للوقت، ومتصلة بدورة الغسيل والصيانة الذاتية للخزانة بأعلى درجات الأناقة.
+                </p>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#E8A2A8] mb-1.5">
+                  <Award className="w-4 h-4" />
+                  <span>القيمة المقترحة (Value Proposition)</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-stone-300">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#E8A2A8] shrink-0" />
+                    <span>توفير أكثر من 20 دقيقة من البحث والتجربة يومياً أمام الخزانة.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#E8A2A8] shrink-0" />
+                    <span>تنسيق ذكي متوافق لحظياً مع درجات حرارة الطقس وظروف اليوم.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#E8A2A8] shrink-0" />
+                    <span>تتبع أوتوماتيكي لقطع الغسيل يمنع اقتراح الملابس غير الجاهزة.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#E8A2A8] mb-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>فريق عمل المشروع (Project Team)</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="font-bold text-white">إدارة المشروع</div>
+                    <div className="text-[9px] sm:text-[10px] text-stone-400 mt-0.5">تطوير الأعمال</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="font-bold text-white">تصميم الواجهة</div>
+                    <div className="text-[9px] sm:text-[10px] text-stone-400 mt-0.5">تجربة المرآة UX/UI</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="font-bold text-white">هندسة IoT</div>
+                    <div className="text-[9px] sm:text-[10px] text-stone-400 mt-0.5">الشماعات والأنظمة</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/20 border border-white/5">
+                    <div className="font-bold text-white">التحليل المالي</div>
+                    <div className="text-[9px] sm:text-[10px] text-stone-400 mt-0.5">الجدوى والتسعير</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 sm:pt-4 border-t border-white/10 flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-xs text-stone-400">
+                مشروع مساق ريادة الأعمال 2026
+              </span>
+              <button
+                onClick={onClose}
+                className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#D8838B] to-[#E8A2A8] text-white text-xs font-bold shadow-md hover:brightness-105 transition-all"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // 🚀 App Main Component
+    // =========================================================================
+    function App() {
+      const [isAsleep, setIsAsleep] = useState(true);
+      const [selectedCategory, setSelectedCategory] = useState('casual');
+      const [clothingList, setClothingList] = useState(INITIAL_CLOTHING_ITEMS);
+      const [laundryList, setLaundryList] = useState(INITIAL_LAUNDRY_ITEMS);
+      const [weatherPresets] = useState(INITIAL_WEATHER_PRESETS);
+      const [currentWeather, setCurrentWeather] = useState(INITIAL_WEATHER_PRESETS[0]);
+
+      const [inventoryFilter, setInventoryFilter] = useState('all');
+      const [selectedColorFilter, setSelectedColorFilter] = useState(null);
+
+      const [currentOutfit, setCurrentOutfit] = useState(() => {
+        const top = clothingList.find((i) => i.type === 'top' && i.category === 'casual') || FALLBACK_ITEM('top', 'casual');
+        const bottom = clothingList.find((i) => i.type === 'bottom' && i.category === 'casual') || FALLBACK_ITEM('bottom', 'casual');
+        const shoes = clothingList.find((i) => i.type === 'shoes' && i.category === 'casual') || FALLBACK_ITEM('shoes', 'casual');
+        return { top, bottom, shoes };
+      });
+
+      const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+      const [isLaundryDrawerOpen, setIsLaundryDrawerOpen] = useState(false);
+      const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
+
+      const baseAvailableCount = clothingList.length;
+      const returnedCount = INITIAL_LAUNDRY_ITEMS.length - laundryList.length;
+      const totalAvailablePieces = baseAvailableCount + returnedCount;
+
+      const topsCount = Math.round(totalAvailablePieces * 0.41);
+      const bottomsCount = Math.round(totalAvailablePieces * 0.32);
+      const shoesCount = totalAvailablePieces - topsCount - bottomsCount;
+
+      const handleSelectCategory = (cat) => {
+        setSelectedCategory(cat);
+        const tops = clothingList.filter((i) => i.type === 'top' && i.category === cat && i.isClean);
+        const bottoms = clothingList.filter((i) => i.type === 'bottom' && i.category === cat && i.isClean);
+        const shoes = clothingList.filter((i) => i.type === 'shoes' && i.category === cat && i.isClean);
+
+        setCurrentOutfit({
+          top: tops.length ? tops[0] : FALLBACK_ITEM('top', cat),
+          bottom: bottoms.length ? bottoms[0] : FALLBACK_ITEM('bottom', cat),
+          shoes: shoes.length ? shoes[0] : FALLBACK_ITEM('shoes', cat),
+        });
+      };
+
+      const handleUpdatePiece = (type, item) => {
+        setCurrentOutfit((prev) => ({
+          ...prev,
+          [type]: item,
+        }));
+      };
+
+      const handleReturnToCloset = (id) => {
+        setLaundryList((prev) => prev.filter((item) => item.id !== id));
+      };
+
+      const handleReturnAllLaundry = () => {
+        setLaundryList([]);
+      };
+
+      return (
+        <div
+          className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto bg-[#14141E] text-white flex flex-col justify-between font-['Tajawal',sans-serif] selection:bg-[#E8A2A8]/30 pb-6 sm:pb-8 touch-scroll"
+          dir="rtl"
+        >
+          {/* Background Mirror Reflection */}
+          <div
+            className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-700 filter brightness-[0.38] contrast-[1.05]"
+            style={{ backgroundImage: `url(${WARDROBE_BG_IMAGE})` }}
+          />
+          <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#1E1E2C]/70 via-[#1E1E2C]/50 to-[#14141E]/80 backdrop-blur-[2px] pointer-events-none" />
+
+          {/* Wake-up Screen */}
+          {isAsleep && (
+            <WakeUpScreen
+              onWakeUp={() => setIsAsleep(false)}
+              weather={currentWeather}
+            />
+          )}
+
+          {/* Main Content Wrap */}
+          <div className="relative z-10 flex-1 flex flex-col justify-between p-3 sm:p-6 md:p-8 max-w-[1440px] mx-auto w-full">
+            {/* Header */}
+            <div className="w-full flex items-center justify-between pb-3 sm:pb-4 pt-1">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white/90 drop-shadow font-['Cairo',sans-serif]">
+                  مساعد التنسيق الشخصي - EasyWear
+                </h1>
+                <span className="hidden sm:inline-block text-[11px] px-2.5 py-0.5 rounded-full bg-white/10 text-[#E8A2A8] border border-white/10 font-mono">
+                  Smart Glass Mirror
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsAsleep(true)}
+                  className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-stone-300 hover:text-white transition-all flex items-center gap-1.5 text-xs shadow-md active:scale-95"
+                  title="تفعيل وضع السكون / شاشة الاستيقاظ"
+                >
+                  <Moon className="w-4 h-4 text-[#E8A2A8]" />
+                  <span className="hidden md:inline">وضع السكون</span>
+                </button>
+
+                <button
+                  onClick={() => setIsPitchModalOpen(true)}
+                  className="py-2 px-3 rounded-2xl bg-[#E8A2A8]/20 hover:bg-[#E8A2A8]/30 border border-[#E8A2A8]/40 text-[#E8A2A8] hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold shadow-md active:scale-95"
+                  title="معلومات المشروع الأكاديمي"
+                >
+                  <Info className="w-4 h-4" />
+                  <span className="hidden sm:inline">معلومات المشروع</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Grid Layout (Optimized for iPad Landscape & Portrait) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start my-2 sm:my-auto">
+              <div className="lg:col-span-8 flex order-1 lg:order-2">
+                <MainMirrorPanel
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={handleSelectCategory}
+                  currentOutfit={currentOutfit}
+                  onUpdatePiece={handleUpdatePiece}
+                  onConfirmOutfit={() => setIsConfirmModalOpen(true)}
+                  weather={currentWeather}
+                  allItems={clothingList}
+                  colorFilter={selectedColorFilter}
+                />
+              </div>
+
+              <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-5 order-2 lg:order-1">
+                <WeatherWidget
+                  weather={currentWeather}
+                  onSelectWeather={setCurrentWeather}
+                  availableWeathers={weatherPresets}
+                />
+
+                <WardrobeStatsWidget
+                  totalCount={totalAvailablePieces}
+                  topsCount={topsCount}
+                  bottomsCount={bottomsCount}
+                  shoesCount={shoesCount}
+                  laundryCount={laundryList.length}
+                  onOpenLaundryDrawer={() => setIsLaundryDrawerOpen(true)}
+                  activeFilter={inventoryFilter}
+                  onFilterChange={setInventoryFilter}
+                  selectedColorFilter={selectedColorFilter}
+                  onSelectColorFilter={setSelectedColorFilter}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <footer className="w-full pt-3 sm:pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs text-stone-400 gap-2 border-t border-white/5 mt-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>خزانة EasyWear متصلة ومستشعرات RFID نشطة · v2.4</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsLaundryDrawerOpen(true)}
+                  className="text-stone-300 hover:text-white transition-colors"
+                >
+                  سلة الغسيل ({laundryList.length})
+                </button>
+                <span>·</span>
+                <button
+                  onClick={() => setIsPitchModalOpen(true)}
+                  className="text-[#E8A2A8] hover:underline"
+                >
+                  عرض وثيقة ريادة الأعمال
+                </button>
+              </div>
+            </footer>
+          </div>
+
+          {/* Modals */}
+          {isConfirmModalOpen && (
+            <ConfirmationModal
+              outfit={currentOutfit}
+              weather={currentWeather}
+              onClose={() => setIsConfirmModalOpen(false)}
+            />
+          )}
+
+          <LaundryDrawer
+            isOpen={isLaundryDrawerOpen}
+            onClose={() => setIsLaundryDrawerOpen(false)}
+            laundryItems={laundryList}
+            onReturnToCloset={handleReturnToCloset}
+            onReturnAll={handleReturnAllLaundry}
+          />
+
+          <BusinessPitchModal
+            isOpen={isPitchModalOpen}
+            onClose={() => setIsPitchModalOpen(false)}
+          />
+        </div>
+      );
+    }
+
+    // Render App into DOM
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
